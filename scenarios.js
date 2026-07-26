@@ -291,13 +291,42 @@ window.NEGOTIATION_SCENARIOS = {
     },
     "course_concepts": [
       "information_asymmetry",
-      "signalling",
       "negotiation_strategy",
       "vendor_lock_in",
       "supply_risk_management",
       "relationship_management",
       "strategic_decision_making"
     ],
+    "analysis_rules": {
+      "rating_rubric": {
+        "excellent": 0,
+        "strong": 10,
+        "moderate": 20,
+        "weak": 30
+      },
+      "customer_actions": {
+        "accept_migration": {"benefit": "Secures immediate continuity and closes the legacy-platform decision.", "risk": "Surrenders competitive leverage and accepts the supplier-led transformation path.", "advice": "Use only when continuity urgency outweighs the value of further negotiation."},
+        "negotiate": {"benefit": "Keeps the negotiation open and tests whether incentives are available.", "risk": "May reveal commitment without creating credible alternatives.", "advice": "Link requests for concessions to a clear decision timetable and credible alternatives."},
+        "defer": {"benefit": "Preserves immediate flexibility and avoids premature commitment.", "risk": "Can activate higher legacy cost or end-of-life pressure.", "advice": "Defer only with a funded transition plan and quantified cost of delay."},
+        "full_migration": {"benefit": "Protects business continuity through a clear transformation commitment.", "risk": "Creates high dependency and weakens cost leverage.", "advice": "Secure exit, benchmarking and implementation protections before committing."},
+        "partial_transition": {"benefit": "Balances continuity, cost control and relationship value.", "risk": "May create a complex hybrid estate and only partial leverage.", "advice": "Define scope boundaries, migration gates and future pricing protections."},
+        "continue_delay": {"benefit": "Preserves flexibility and avoids immediate migration economics.", "risk": "Leaves continuity and legacy-cost exposure unresolved.", "advice": "Pair delay with a time-bound alternative-platform or migration assessment."},
+        "competitive_leverage": {"benefit": "Strengthens cost and strategic leverage while preserving alternatives.", "risk": "Leverage is weak if switching options are not credible or executable.", "advice": "Validate technical feasibility, switching cost and executive sponsorship before relying on competition."},
+        "commit": {"benefit": "Preserves the negotiated direction and avoids reopening settled trade-offs.", "risk": "Locks in any weaknesses already present in the Round 3 choice.", "advice": "Commit only after confirming that the preserved outcome remains valid under the latest supplier response."},
+        "withdraw": {"benefit": "Avoids preserving a direction that has become unattractive.", "risk": "May sacrifice concessions or momentum already secured.", "advice": "Withdraw only when the preserved outcome is materially worse than the valid fallback."},
+        "change_direction": {"benefit": "Allows the customer to respond to new information before final commitment.", "risk": "A late switch can destroy credibility or forfeit negotiated value.", "advice": "Change direction only where the replacement outcome is demonstrably stronger."}
+      },
+      "supplier_actions": {
+        "status_quo": {"signal": "The supplier sees no immediate need to improve its position.", "objective": "Preserve current commercial terms and optionality.", "response": "Test the supplier's assumptions with deadlines, alternatives and quantified consequences."},
+        "increase_tco": {"signal": "The supplier is monetising delay and protecting profitability.", "objective": "Increase the economic cost of remaining on the legacy platform.", "response": "Quantify the full delay cost and compare it with migration and alternative-platform options."},
+        "commercial_concession": {"signal": "The supplier is willing to trade economics for migration or expansion.", "objective": "Accelerate new business while preserving account value.", "response": "Separate genuine value from commitments that increase dependency."},
+        "eol_activation": {"signal": "The supplier is using lifecycle pressure to accelerate the decision.", "objective": "Enforce strategic direction and reduce customer delay.", "response": "Validate the technical and contractual deadline rather than accepting urgency at face value."},
+        "maintain_position": {"signal": "The supplier believes its current position remains defensible.", "objective": "Preserve leverage without further concession.", "response": "Identify what new evidence or credible alternative would change the supplier's calculation."},
+        "relationship_preservation": {"signal": "The supplier values long-term account stability over immediate pressure.", "objective": "Protect relationship value and future business.", "response": "Use relationship capital to secure measurable protections, not vague goodwill."},
+        "escalate_commercial_pressure": {"signal": "The supplier is increasing the price of delay or resistance.", "objective": "Recover revenue and force movement toward commitment.", "response": "Avoid reactive acceptance; compare the escalation with credible alternatives and transition costs."},
+        "eol_enforcement": {"signal": "The supplier is prepared to enforce lifecycle consequences.", "objective": "Compel alignment with the supplier's strategic roadmap.", "response": "Escalate governance, validate obligations and activate continuity contingencies."}
+      }
+    },
     "terminal": {
       "accept_migration": "full_migration"
     }
@@ -660,12 +689,37 @@ window.NEGOTIATION_SCENARIOS = {
         "escalated_pressure": "dispute"
       }
     },
+    "analysis_rules": {
+      "rating_rubric": {"excellent": 0, "strong": 10, "moderate": 20, "weak": 30},
+      "customer_actions": {
+        "cooperate": {"benefit": "Supports fact finding and can reduce avoidable escalation.", "risk": "May weaken leverage if cooperation is not bounded by scope and rights.", "advice": "Cooperate under a documented protocol that preserves legal and commercial positions."},
+        "negotiate": {"benefit": "Creates a route to commercial resolution without immediate acceptance of liability.", "risk": "May convert disputed exposure into future dependency.", "advice": "Separate settlement value from unrelated expansion commitments."},
+        "dispute": {"benefit": "Challenges unsupported findings and preserves the right to contest liability.", "risk": "Can expand audit scope, cost and legal pressure.", "advice": "Dispute with evidence, governance and a controlled settlement alternative."},
+        "settlement": {"benefit": "Closes the audit and protects continuity.", "risk": "Accepts the liability economics and may leave governance weaknesses unresolved.", "advice": "Tie settlement to closure language, release terms and future compliance controls."},
+        "concession": {"benefit": "May reduce immediate liability and preserve the relationship.", "risk": "Can exchange audit exposure for subscriptions, cloud commitments or lock-in.", "advice": "Value every future commitment independently from the audit settlement."},
+        "negotiate_concession": {"benefit": "Keeps a commercial resolution open while testing for improved terms.", "risk": "Prolongs exposure and may still anchor the customer to future commitments.", "advice": "Set a walk-away position and compare the offer with a pure settlement."},
+        "rejection_of_notice": {"benefit": "Preserves the strongest challenge to Oracle's formal position.", "risk": "Creates litigation, arbitration and continuity exposure.", "advice": "Use only with legal support, evidence strength and a funded dispute plan."},
+        "commit": {"benefit": "Preserves the current negotiated outcome.", "risk": "Locks in any unresolved weakness in that outcome.", "advice": "Confirm closure, economics and future obligations before committing."},
+        "withdraw": {"benefit": "Avoids preserving an unattractive commercial direction.", "risk": "May lose concessions and increase dispute cost.", "advice": "Withdraw only where dispute is a stronger valid fallback."},
+        "change_direction": {"benefit": "Allows a final response to new supplier behaviour.", "risk": "Late changes can forfeit negotiated value or increase escalation.", "advice": "Change direction only after comparing the replacement with Commit on the same facts."}
+      },
+      "supplier_actions": {
+        "settlement_offer": {"signal": "Oracle is seeking a direct commercial recovery and closure.", "objective": "Convert audit findings into immediate profitability.", "response": "Test liability evidence, closure language and total settlement value."},
+        "concession_offer": {"signal": "Oracle is willing to trade audit economics for future business.", "objective": "Create new business and preserve account value.", "response": "Unbundle audit resolution from future products and commitments."},
+        "audit_expansion": {"signal": "Oracle is increasing pressure and information asymmetry.", "objective": "Strengthen commercial leverage and potential recovery.", "response": "Control scope, evidence requests, governance and legal review."},
+        "formal_notice": {"signal": "Oracle is escalating from commercial dialogue to contractual enforcement.", "objective": "Reinforce enforcement credibility and force movement.", "response": "Preserve rights, validate the notice and prepare a governed response."},
+        "improved_concession": {"signal": "Oracle values agreement enough to improve the commercial package.", "objective": "Secure future business while avoiding continued dispute.", "response": "Revalue the entire package and demand explicit audit closure."},
+        "maintain_position": {"signal": "Oracle believes the current pressure remains sufficient.", "objective": "Preserve leverage without giving additional value.", "response": "Identify evidence, alternatives or escalation risks that change Oracle's calculation."},
+        "relationship_preservation": {"signal": "Oracle is protecting long-term account value.", "objective": "Preserve relationship and future commercial opportunity.", "response": "Convert relationship intent into measurable settlement and governance terms."},
+        "escalated_pressure": {"signal": "Oracle is increasing commercial and legal consequences.", "objective": "Force resolution and protect enforcement credibility.", "response": "Use executive governance and compare settlement cost with dispute exposure."},
+        "litigation_arbitration": {"signal": "Oracle is prepared to sacrifice relationship value for enforcement.", "objective": "Maximise enforcement credibility and strategic control.", "response": "Move to legal-led governance and protect business continuity."}
+      }
+    },
     "intermediate_actions": [
       "negotiate_concession"
     ],
     "course_concepts": [
       "information_asymmetry",
-      "signalling",
       "negotiation_strategy",
       "software_licensing_risk",
       "governance",
