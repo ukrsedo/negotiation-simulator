@@ -150,63 +150,78 @@ function findResultsArray(data){
   return [];
 }
 
-function normalizeResultRecord(record){
+function normalizeResultRecord(record) {
   const assessmentField =
-  record.AssessmentID ??
-  record.assessmentId ??
-  record.AssessmentId ??
-  record.Assessment ??
-  record.assessment ??
-  record.Title ??
-  record.title ??
-  "";
+    record.AssessmentID ??
+    record.assessmentId ??
+    record.AssessmentId ??
+    record.Assessment ??
+    record.assessment ??
+    record.Title ??
+    record.title ??
+    "";
 
-const assessmentId =
-  typeof assessmentField === "object" && assessmentField !== null
-    ? assessmentField.Value ?? assessmentField.value ?? ""
-    : assessmentField;
-  
- const rawScore=
-    record.Score??record.score??record.Points??record.points??record.Result??record.result;
+  const assessmentId =
+    typeof assessmentField === "object" && assessmentField !== null
+      ? assessmentField.Value ?? assessmentField.value ?? ""
+      : assessmentField;
 
-  const numericScore=Number(rawScore);
-  const maximum=
-    record.MaximumScore??record.maximumScore??record.MaxScore??record.maxScore;
+  const rawScore =
+    record.Score ??
+    record.score ??
+    record.Points ??
+    record.points ??
+    record.Result ??
+    record.result;
 
-  const scoreDisplay=Number.isFinite(numericScore)
-    ? `${numericScore}${maximum!==undefined&&maximum!==null?`/${maximum}`:''}`
-    : escapeHtml(String(rawScore??'—'));
+  const numericScore = Number(rawScore);
+
+  const maximum =
+    record.MaximumScore ??
+    record.maximumScore ??
+    record.MaxScore ??
+    record.maxScore;
+
+  const scoreDisplay = Number.isFinite(numericScore)
+    ? `${numericScore}${
+        maximum !== undefined && maximum !== null ? `/${maximum}` : ""
+      }`
+    : String(rawScore ?? "—");
 
   const rawDate =
-  record.SubmittedAt ??
-  record.submittedAt ??
-  record.Created ??
-  record.created ??
-  record.Date ??
-  record.date ??
-  '';
+    record.SubmittedAt ??
+    record.submittedAt ??
+    record.Created ??
+    record.created ??
+    record.Date ??
+    record.date ??
+    "";
 
-const parsedDate = rawDate ? new Date(rawDate) : null;
+  let formattedDate = "—";
 
-const date =
-  parsedDate && !Number.isNaN(parsedDate.getTime())
-    ? parsedDate.toLocaleString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    : '';
+  if (rawDate) {
+    const parsedDate = new Date(rawDate);
 
-  return{
-    assessmentId:String(assessmentId),
-    score:Number.isFinite(numericScore)?numericScore:0,
+    if (!Number.isNaN(parsedDate.getTime())) {
+      formattedDate = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Tbilisi",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      }).format(parsedDate);
+    }
+  }
+
+  return {
+    assessmentId: String(assessmentId),
+    score: Number.isFinite(numericScore) ? numericScore : 0,
     scoreDisplay,
-    date:String(date)
+    date: formattedDate
   };
 }
-
 function escapeHtml(value){
   return String(value)
     .replaceAll('&','&amp;')
