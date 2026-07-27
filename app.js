@@ -41,3 +41,148 @@ function showSubmit(){const courseScore=Math.round(st.q.cf/10);set(`<h2>Record S
 async function submitScore(){const sid=document.getElementById('sid').value.trim(),msg=document.getElementById('msg');if(!/^\d{6}-\d{2}$/.test(sid)){msg.innerHTML='<p class="notice error">Student ID format is invalid.</p>';return}if(st.submissionAttempted){msg.innerHTML='<p class="notice error">This result has already been submitted, or the submission was already attempted.</p>';return}st.submissionAttempted=true;const url=window.PORTAL_CONFIG?.submitAssessmentUrl;if(!url){msg.innerHTML='<p class="notice error">Power Automate submission URL is not configured in config.js.</p>';return}try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({StudentID:sid,AssessmentID:st.g.game.assessment_id,Score:Math.round(st.q.cf/10)})});let body;try{body=await r.json()}catch{body=await r.text()}msg.innerHTML=`<p class="notice ${r.ok?'':'error'}">${r.ok?'Score successfully recorded.':(body?.message||body||`Submission failed (${r.status}).`)}</p>`}catch(e){msg.innerHTML=`<p class="notice error">${e.message}</p>`}}
 function replay(){set('<h2>Replay Options</h2>');app.appendChild(btn('1. Replay same game with another profile',()=>selectGame(st.key)));app.appendChild(btn('2. Replay same profile with different decisions',()=>{const p=st.profile,k=st.key;st={history:[],effects:[],decisions:[],supplierDecisions:[],submissionAttempted:false,key:k,g:S[k],round:1,profile:p};playRound()}));app.appendChild(btn('3. Return to game selection',home));}
 home();
+
+
+// Student results retrieval
+const resultsButton=document.getElementById('getStudentResults');
+if(resultsButton){
+  resultsButton.onclick=getStudentResults;
+}
+
+async function getStudentResults(){
+  const sid=document.getElementById('resultsStudentId').value.trim();
+  const msg=document.getElementById('studentResultsMessage');
+  const output=document.getElementById('studentResultsOutput');
+
+  msg.innerHTML='';
+  output.innerHTML='';
+
+  if(!/^\d{6}-\d{2}$/.test(sid)){
+    msg.innerHTML='<p class="notice error">Student ID format is invalid.</p>';
+    return;
+  }
+
+  const url=window.PORTAL_CONFIG?.getStudentResultsUrl;
+  if(!url){
+    msg.innerHTML='<p class="notice error">Student results URL is not configured in config.js.</p>';
+    return;
+  }
+
+  resultsButton.disabled=true;
+  resultsButton.textContent='Loading...';
+
+  try{
+    const response=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({StudentID:sid})
+    });
+
+    let body;
+    const text=await response.text();
+    try{body=text?JSON.parse(text):{}}catch{body=text}
+
+    if(!response.ok){
+      const errorMessage=
+        body?.message||
+        body?.error?.message||
+        (typeof body==='string'?body:`Request failed (${response.status}).`);
+      msg.innerHTML=`<p class="notice error">${escapeHtml(String(errorMessage))}</p>`;
+      return;
+    }
+
+    renderStudentResults(body,output);
+  }catch(error){
+    msg.innerHTML=`<p class="notice error">${escapeHtml(error.message)}</p>`;
+  }finally{
+    resultsButton.disabled=false;
+    resultsButton.textContent='View results';
+  }
+}
+
+function renderStudentResults(data,container){
+  const records=findResultsArray(data);
+
+  if(!records.length){
+    const message=data?.message||'No recorded assessment results were returned for this Student ID.';
+    container.innerHTML=`<p class="notice">${escapeHtml(String(message))}</p>`;
+    return;
+  }
+
+  const rows=records.map(normalizeResultRecord);
+  const total=rows.reduce((sum,row)=>sum+(Number.isFinite(row.score)?row.score:0),0);
+
+  container.innerHTML=`
+    <div class="results-summary"><strong>Recorded assessments:</strong> ${rows.length}
+    &nbsp; | &nbsp; <strong>Total recorded score:</strong> ${total}</div>
+    <table class="results-table">
+      <thead><tr><th>Assessment</th><th>Score</th><th>Date</th></tr></thead>
+      <tbody>
+        ${rows.map(row=>`<tr>
+          <td>${escapeHtml(row.assessmentId||'—')}</td>
+          <td>${row.scoreDisplay}</td>
+          <td>${escapeHtml(row.date||'—')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function findResultsArray(data){
+  if(Array.isArray(data))return data;
+  if(!data||typeof data!=='object')return [];
+  const candidates=[
+    data.results,
+    data.Results,
+    data.assessments,
+    data.Assessments,
+    data.records,
+    data.Records,
+    data.value,
+    data.body
+  ];
+  for(const candidate of candidates){
+    if(Array.isArray(candidate))return candidate;
+    if(candidate&&typeof candidate==='object'){
+      const nested=findResultsArray(candidate);
+      if(nested.length)return nested;
+    }
+  }
+  return [];
+}
+
+function normalizeResultRecord(record){
+  const assessmentId=
+    record.AssessmentID??record.assessmentId??record.AssessmentId??
+    record.Title??record.title??record.Assessment??record.assessment??'';
+
+  const rawScore=
+    record.Score??record.score??record.Points??record.points??record.Result??record.result;
+
+  const numericScore=Number(rawScore);
+  const maximum=
+    record.MaximumScore??record.maximumScore??record.MaxScore??record.maxScore;
+
+  const scoreDisplay=Number.isFinite(numericScore)
+    ? `${numericScore}${maximum!==undefined&&maximum!==null?`/${maximum}`:''}`
+    : escapeHtml(String(rawScore??'—'));
+
+  const date=
+    record.SubmittedAt??record.submittedAt??record.Created??record.created??
+    record.Date??record.date??'';
+
+  return{
+    assessmentId:String(assessmentId),
+    score:Number.isFinite(numericScore)?numericScore:0,
+    scoreDisplay,
+    date:String(date)
+  };
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}

@@ -1,1 +1,10 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Negotiation Simulator</title><link rel="stylesheet" href="styles.css"></head><body><main><header><div><p class="eyebrow">IT PROCUREMENT FOUNDATIONS</p><h1>Negotiation Simulator</h1></div><button id="restart" class="secondary">Restart</button></header><section id="app" class="panel"></section></main><script src="config.js"></script><script src="scenarios.js"></script><script src="app.js"></script></body></html>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Negotiation Simulator</title><link rel="stylesheet" href="styles.css"></head><body><main><header><div><p class="eyebrow">IT PROCUREMENT FOUNDATIONS</p><h1>Negotiation Simulator</h1></div><button id="restart" class="secondary">Restart</button></header><section id="app" class="panel"></section>
+<section id="student-results-panel" class="panel results-panel">
+  <h2>View student results</h2>
+  <p>Enter your Student ID to retrieve your recorded course results.</p>
+  <label for="resultsStudentId">Student ID</label>
+  <input id="resultsStudentId" placeholder="YYMMDD-##">
+  <button id="getStudentResults" class="secondary">View results</button>
+  <div id="studentResultsMessage"></div>
+  <div id="studentResultsOutput"></div>
+</section></main><script src="config.js"></script><script src="scenarios.js"></script><script src="app.js"></script></body></html>
