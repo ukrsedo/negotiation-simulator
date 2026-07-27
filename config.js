@@ -1,4 +1,4 @@
 window.PORTAL_CONFIG = {
-  submitAssessmentUrl: '',
+  submitAssessmentUrl: 'https://itpf-negotiation-proxy.ukrsedo-e2e.workers.dev',
   getStudentResultsUrl: ''
 };
