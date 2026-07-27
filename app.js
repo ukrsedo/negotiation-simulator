@@ -151,11 +151,22 @@ function findResultsArray(data){
 }
 
 function normalizeResultRecord(record){
-  const assessmentId=
-    record.AssessmentID??record.assessmentId??record.AssessmentId??
-    record.Title??record.title??record.Assessment??record.assessment??'';
+  const assessmentField =
+  record.AssessmentID ??
+  record.assessmentId ??
+  record.AssessmentId ??
+  record.Assessment ??
+  record.assessment ??
+  record.Title ??
+  record.title ??
+  "";
 
-  const rawScore=
+const assessmentId =
+  typeof assessmentField === "object" && assessmentField !== null
+    ? assessmentField.Value ?? assessmentField.value ?? ""
+    : assessmentField;
+  
+ const rawScore=
     record.Score??record.score??record.Points??record.points??record.Result??record.result;
 
   const numericScore=Number(rawScore);
