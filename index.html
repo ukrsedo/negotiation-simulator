@@ -1,18 +1,8 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Negotiation Simulator</title><link rel="stylesheet" href="styles.css"></head><body><main><header><div><p class="eyebrow">IT PROCUREMENT FOUNDATIONS</p><h1>Negotiation Simulator</h1></div><button id="restart" class="secondary">Restart</button></header><section id="app" class="panel"></section>
-<section id="student-results-panel" class="panel results-panel">
-  <h2>View student results</h2>
-  <p>Enter your Student ID to retrieve your recorded course results.</p>
-  <label for="resultsStudentId">Student ID</label>
-  <input id="resultsStudentId" placeholder="YYMMDD-##">
-  <button id="getStudentResults" class="secondary">View results</button>
-  <div id="studentResultsMessage"></div>
-  <div id="studentResultsOutput"></div>
-</section>
-
-</main>
-
-<script src="config.js"></script>
-<script src="scenarios.js"></script>
-<script src="app.js?v=20260728-1"></script>
-</body>
-</html>
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IT Procurement Foundations — Negotiation Simulator</title><link rel="stylesheet" href="styles.css"></head>
+<body><main class="shell">
+<header class="site-header"><div><p class="eyebrow">IT Procurement Foundations</p><h1>Negotiation Simulator</h1><p class="header-sub">Practise supplier negotiation decisions and see the commercial consequences of each path.</p></div><button id="restart" class="secondary restart-btn">Restart</button></header>
+<section id="app" class="panel game-panel"></section>
+<section id="student-results-panel" class="panel results-panel"><div class="results-panel-head"><div><p class="section-kicker">Course progress</p><h2>View student results</h2><p>Enter your Student ID to retrieve recorded assessments and your current course score.</p></div></div><div class="results-query"><label for="resultsStudentId">Student ID</label><div class="results-query-row"><input id="resultsStudentId" placeholder="YYMMDD-##" autocomplete="off"><button id="getStudentResults" class="secondary">View results</button></div></div><div id="studentResultsMessage"></div><div id="studentResultsOutput"></div></section>
+</main><script src="config.js"></script><script src="scenarios.js"></script><script src="app.js?v=20260829-ux2"></script></body></html>
