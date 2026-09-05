@@ -1,0 +1,42 @@
+name: Fix SAP results review
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-sap-results-review.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Replace SAP opportunity cost with best answer review
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app.js')
+          s=p.read_text()
+          bad="const learningReview=st.key==='SAP_Transformation'?`<details><summary>Best answer by round</summary><div class=\"detail-body\">${renderBestAnswers()}</div></details>`:`${learningReview}`;"
+          good="const learningReview=st.key==='SAP_Transformation'?`<details><summary>Best answer by round</summary><div class=\"detail-body\">${renderBestAnswers()}</div></details>`:`<details><summary>Opportunity cost</summary><div class=\"detail-body\">${renderOpportunityCost()}</div></details>`;"
+          if bad not in s:
+              raise SystemExit('learningReview target not found')
+          s=s.replace(bad,good,1)
+          old='<details><summary>Opportunity cost</summary><div class="detail-body">${renderOpportunityCost()}</div></details><details><summary>Course concepts</summary>'
+          new='${learningReview}<details><summary>Course concepts</summary>'
+          if old not in s:
+              raise SystemExit('hard-coded opportunity cost target not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          node --check app.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.js
+          git commit -m 'Fix SAP result review section'
+          git push
