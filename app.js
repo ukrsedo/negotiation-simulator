@@ -153,7 +153,59 @@ function chooseReplacement(){
 function availableActionsForReplacement(){const current=resolveCurrentOutcome();return Object.keys(st.g.rounds.round_3.actions).filter(a=>a!==current&&!(st.g.intermediate_actions||[]).includes(a)&&validity(a).ok)}
 function outcomeScore(outcome,party='customer'){const ach=st.g.objective_achievement[outcome]||{customer:[],supplier:[]};if(party==='customer'){const strategic=(ach.customer||[]).reduce((n,x)=>n+(st.g.customer_objective_points[x]||0),0);return strategic+(st.g.customer_economic_scores[outcome]??0)}const strategic=(ach.supplier||[]).reduce((n,x)=>n+(st.g.profiles[st.profile].hidden_distribution[x]||0),0);return strategic+(st.g.supplier_economic_scores[outcome]??0)}
 function concessionModifier(){const action=st.concessionExchange;if(!action)return 0;return concessionPairValue(action)}
-function score(){const o=st.finalOutcome,ach=st.g.objective_achievement[o]||{customer:[],supplier:[]};const cs=(ach.customer||[]).reduce((n,x)=>n+(st.g.customer_objective_points[x]||0),0);const ss=(ach.supplier||[]).reduce((n,x)=>n+(st.g.profiles[st.profile].hidden_distribution[x]||0),0);const ce=st.g.customer_economic_scores[o]??0,se=st.g.supplier_economic_scores[o]??0,cm=concessionModifier();const cf=Math.max(0,Math.min(100,cs+ce+cm));return {ach,cs,ss,ce,se,cm,cf,sf:ss+se}}
+function oracleDecisionScore(){
+  const d1=st.decisions.find(d=>d.round===1),d3=st.decisions.find(d=>d.round===3),d4=st.decisions.find(d=>d.round===4),d6=st.decisions.find(d=>d.round===6);
+  let total=0;
+
+  // Round 1: commercial resolution without premature acceptance or escalation is the strongest opening.
+  if(d1)total+=d1.action==='negotiate'?15:d1.action==='cooperate'?10:7;
+
+  // Round 3: reward the strength of the selected direction relative to the options actually available.
+  if(d3){
+    const scoreR3=a=>{
+      if(a==='negotiate_concession'){
+        const prefs=st.g.preferences?.[st.profile]?.round_5_after_negotiate_concession||[];
+        const supplier=prefs.find(x=>st.g.outcome_resolution?.negotiate_concession?.[x]);
+        const out=st.g.outcome_resolution?.negotiate_concession?.[supplier];
+        return out?outcomeScore(out):-999;
+      }
+      return outcomeScore(a);
+    };
+    const vals=d3.available.map(scoreR3).filter(Number.isFinite),best=Math.max(...vals),worst=Math.min(...vals),chosen=scoreR3(d3.action);
+    total+=best===worst?25:Math.round(10+15*((chosen-worst)/(best-worst)));
+  }
+
+  // Round 4: score the reciprocal concession against the best/worst trade available for that actual Oracle offer.
+  if(d4){
+    const vals=d4.available.map(concessionPairValue).filter(Number.isFinite),best=Math.max(...vals),worst=Math.min(...vals),chosen=concessionPairValue(d4.action);
+    total+=best===worst?20:Math.round(5+15*((chosen-worst)/(best-worst)));
+  }
+
+  // Round 6: compare the final decision with all valid final alternatives on the same facts.
+  if(d6){
+    const preserved=resolveCurrentOutcome(),candidates=[];
+    if(preserved)candidates.push({key:'commit',score:outcomeScore(preserved)});
+    if(d6.available.includes('withdraw'))candidates.push({key:'withdraw',score:outcomeScore('dispute')});
+    if(d6.available.includes('change_direction'))availableActionsForReplacement().forEach(o=>candidates.push({key:`change_direction:${o}`,score:outcomeScore(o)}));
+    const best=Math.max(...candidates.map(x=>x.score));
+    let chosenKey=d6.action;
+    if(d6.action==='change_direction'&&d6.replacement)chosenKey=`change_direction:${d6.replacement}`;
+    const chosen=candidates.find(x=>x.key===chosenKey)?.score;
+    if(Number.isFinite(chosen)){
+      const worst=Math.min(...candidates.map(x=>x.score));
+      total+=best===worst?15:Math.round(5+10*((chosen-worst)/(best-worst)));
+    }
+  }
+
+  // Final negotiated outcome remains relevant, but it no longer overwhelms the quality of the path taken.
+  const outcome=outcomeScore(st.finalOutcome);
+  const outcomeUniverse=['improved_concession','concession','settlement','dispute','rejection_of_notice'].filter(x=>st.g.objective_achievement?.[x]);
+  const vals=outcomeUniverse.map(x=>outcomeScore(x)),best=Math.max(...vals),worst=Math.min(...vals);
+  total+=best===worst?25:Math.round(10+15*((outcome-worst)/(best-worst)));
+
+  return Math.max(0,Math.min(100,total));
+}
+function score(){const o=st.finalOutcome,ach=st.g.objective_achievement[o]||{customer:[],supplier:[]};const cs=(ach.customer||[]).reduce((n,x)=>n+(st.g.customer_objective_points[x]||0),0);const ss=(ach.supplier||[]).reduce((n,x)=>n+(st.g.profiles[st.profile].hidden_distribution[x]||0),0);const ce=st.g.customer_economic_scores[o]??0,se=st.g.supplier_economic_scores[o]??0,cm=concessionModifier();const cf=st.key==='Oracle_Audit'?oracleDecisionScore():Math.max(0,Math.min(100,cs+ce+cm));return {ach,cs,ss,ce,se,cm,cf,sf:ss+se}}
 function missedOpportunityGap(){const r3=st.decisions.find(d=>d.round===3);const r6=st.decisions.find(d=>d.round===6);if(!r3||!r6)return 0;const preserved=resolveCurrentOutcome();const final=st.finalOutcome;if(!preserved||!final)return 0;return Math.max(0,outcomeScore(preserved)-outcomeScore(final))}
 function classify(cf,sf){const gap=missedOpportunityGap();if(gap>=15)return'Missed Opportunity';if(cf>=60&&sf>=60)return'Mutual Gain';if(cf<=44&&sf<=44)return'Deadlock';if(cf>=60&&cf>sf)return'Strong Customer Result';if(sf>=60&&sf>cf)return'Strong Supplier Result';if(cf>sf)return'Limited Customer Advantage';if(sf>cf)return'Limited Supplier Advantage';return'Balanced Result'}
 function classificationNote(classification,cf,sf){const gap=missedOpportunityGap();if(classification==='Missed Opportunity')return `The final decision reduced the customer result by ${gap} points compared with the outcome that Commit would have preserved.`;if(classification==='Strong Customer Result')return `The customer achieved a high absolute score (${cf}/100) and outperformed the supplier.`;if(classification==='Strong Supplier Result')return `The supplier achieved a high absolute score (${sf}/100) and outperformed the customer.`;if(classification==='Limited Customer Advantage')return `The customer outscored the supplier, but the absolute customer result remained below 60/100.`;if(classification==='Limited Supplier Advantage')return `The supplier outscored the customer, but the absolute supplier result remained below 60/100.`;if(classification==='Mutual Gain')return 'Both parties achieved at least 60/100.';if(classification==='Deadlock')return 'Both parties achieved 44/100 or less.';return 'Both parties finished with the same score.'}
@@ -197,7 +249,7 @@ function results(){
   const q=score();st.q=q;const classification=classify(q.cf,q.sf),courseScore=Math.max(0,Math.min(10,Math.round(q.cf/10)));
   const learningReview=`<details><summary>Best answer by round</summary><div class="detail-body">${renderBestAnswers()}</div></details>`;
   set(`<div class="results-hero"><p class="section-kicker">Simulation complete</p><h2>Negotiation Result — ${classification}</h2><div class="result-meta"><span><small>Final outcome</small><strong>${label(st.finalOutcome)}</strong></span><span><small>Course score earned</small><strong>${courseScore}/10</strong></span></div><p>${classificationNote(classification,q.cf,q.sf)}</p></div>
-    <div class="score-grid"><div class="score-card customer-score"><span>Customer</span><strong>${q.cf}<small>/100</small></strong><p>Strategic ${q.cs} · Economic ${q.ce} · Concession ${q.cm>=0?'+':''}${q.cm}</p><small>Objectives: ${q.ach.customer.map(label).join(', ')||'None'}</small></div><div class="score-card supplier-score"><span>Supplier</span><strong>${q.sf}<small>/100</small></strong><p>Strategic ${q.ss} · Economic ${q.se}</p><small>Objectives: ${q.ach.supplier.map(label).join(', ')||'None'}</small></div></div>
+    <div class="score-grid"><div class="score-card customer-score"><span>Customer</span><strong>${q.cf}<small>/100</small></strong><p>${st.key==='Oracle_Audit'?'Decision-path assessment across Rounds 1, 3, 4 and 6 plus final outcome.':`Strategic ${q.cs} · Economic ${q.ce} · Concession ${q.cm>=0?'+':''}${q.cm}`}</p><small>Objectives: ${q.ach.customer.map(label).join(', ')||'None'}</small></div><div class="score-card supplier-score"><span>Supplier</span><strong>${q.sf}<small>/100</small></strong><p>Strategic ${q.ss} · Economic ${q.se}</p><small>Objectives: ${q.ach.supplier.map(label).join(', ')||'None'}</small></div></div>
     <section class="profile-reveal"><p class="section-kicker">Supplier profile revealed</p><h3>${label(st.profile)}</h3><p>${st.g.profiles[st.profile].description}</p><div class="weight-grid">${Object.entries(st.g.profiles[st.profile].hidden_distribution).map(([k,v])=>`<span><b>${label(k)}</b><strong>${v}</strong></span>`).join('')}</div></section>
     <div class="result-sections"><details open><summary>What happened</summary><div class="detail-body">${renderSupplierAnalysis()}</div></details><details><summary>Your decisions</summary><div class="detail-body">${renderDecisionReview()}</div></details>${learningReview}<details><summary>Course concepts</summary><div class="detail-body concept-grid">${renderConceptApplications()}</div></details><details><summary>Negotiation history</summary><div class="detail-body"><div class="table-wrap"><table class="history"><tr><th>Round</th><th>Actor</th><th>Action</th></tr>${st.history.map(h=>`<tr><td>${h.round}</td><td>${h.actor}</td><td>${label(h.action)}</td></tr>`).join('')}</table></div></div></details></div>
     <section class="record-card"><div><p class="section-kicker">Course assessment</p><h3>Course score earned: ${courseScore}/10</h3><p>Record this result against ${st.g.game.assessment_id}, or replay the simulation.</p></div><div id="record" class="record-actions"></div></section>`);
