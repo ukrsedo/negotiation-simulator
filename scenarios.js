@@ -244,6 +244,13 @@ window.NEGOTIATION_SCENARIOS = {
         ]
       }
     },
+    "concession_modifiers": {
+      "revenue_recovery": {"decision_timetable": 4, "scope_commitment": 2, "longer_term": -2, "reference_value": 1, "hold_position": -4},
+      "expansion": {"decision_timetable": 3, "scope_commitment": 1, "longer_term": -1, "reference_value": 2, "hold_position": -3},
+      "account_protection": {"decision_timetable": 5, "scope_commitment": 0, "longer_term": 1, "reference_value": 4, "hold_position": -2},
+      "dependency_growth": {"decision_timetable": 2, "scope_commitment": -6, "longer_term": -5, "reference_value": 3, "hold_position": 1},
+      "maximum_pressure": {"decision_timetable": 1, "scope_commitment": -5, "longer_term": -4, "reference_value": 0, "hold_position": -2}
+    },
     "customer_economic_scores": {
       "competitive_leverage": 30,
       "continue_delay": 20,
@@ -641,6 +648,13 @@ window.NEGOTIATION_SCENARIOS = {
           "improved_concession"
         ]
       }
+    },
+    "concession_modifiers": {
+      "revenue_recovery": {"future_subscription": 1, "cloud_commitment": -2, "longer_term": -1, "governance_commitment": 3, "hold_position": -4},
+      "expansion": {"future_subscription": -3, "cloud_commitment": -5, "longer_term": -2, "governance_commitment": 2, "hold_position": -3},
+      "account_protection": {"future_subscription": 0, "cloud_commitment": -2, "longer_term": 1, "governance_commitment": 5, "hold_position": -2},
+      "dependency_growth": {"future_subscription": -6, "cloud_commitment": -7, "longer_term": -5, "governance_commitment": 4, "hold_position": 1},
+      "maximum_pressure": {"future_subscription": -2, "cloud_commitment": -3, "longer_term": -2, "governance_commitment": 1, "hold_position": -4}
     },
     "customer_economic_scores": {
       "improved_concession": 30,
