@@ -3,7 +3,7 @@ window.NEGOTIATION_SCENARIOS = {
     "game": {
       "id": 1,
       "name": "SAP Transformation",
-      "version": "6.0",
+      "version": "6.1",
       "assessment_id": "GAME-01"
     },
     "brief": "SAP is accelerating migration from ECC to cloud, AI and modern platforms. The customer must balance cost, continuity, flexibility, risk and relationship considerations while SAP pursues commercial and strategic objectives.",
@@ -141,6 +141,20 @@ window.NEGOTIATION_SCENARIOS = {
         }
       }
     },
+    "round4_supplier_offers": {
+      "price_protection": "Capped renewal uplift and protected migration pricing for the agreed transformation period.",
+      "migration_incentive": "Migration credits and implementation funding tied to an agreed transformation timetable.",
+      "flexibility_rights": "Improved ramp, reallocation and scope-flexibility rights during the transition.",
+      "implementation_support": "Enhanced implementation support and governance resources at no additional charge.",
+      "no_additional_concession": "SAP maintains its current commercial position and offers no additional value at this stage."
+    },
+    "round4_supplier_preferences": {
+      "revenue_recovery": ["price_protection", "implementation_support", "flexibility_rights", "migration_incentive", "no_additional_concession"],
+      "expansion": ["migration_incentive", "implementation_support", "price_protection", "flexibility_rights", "no_additional_concession"],
+      "account_protection": ["implementation_support", "flexibility_rights", "price_protection", "migration_incentive", "no_additional_concession"],
+      "dependency_growth": ["flexibility_rights", "migration_incentive", "implementation_support", "price_protection", "no_additional_concession"],
+      "maximum_pressure": ["no_additional_concession", "price_protection", "implementation_support", "flexibility_rights", "migration_incentive"]
+    },
     "path_rules": {
       "partial_transition": [
         "commercial_concession"
@@ -244,12 +258,22 @@ window.NEGOTIATION_SCENARIOS = {
         ]
       }
     },
-    "concession_modifiers": {
-      "revenue_recovery": {"decision_timetable": 4, "scope_commitment": 2, "longer_term": -2, "reference_value": 1, "hold_position": -4},
-      "expansion": {"decision_timetable": 3, "scope_commitment": 1, "longer_term": -1, "reference_value": 2, "hold_position": -3},
-      "account_protection": {"decision_timetable": 5, "scope_commitment": 0, "longer_term": 1, "reference_value": 4, "hold_position": -2},
-      "dependency_growth": {"decision_timetable": 2, "scope_commitment": -6, "longer_term": -5, "reference_value": 3, "hold_position": 1},
-      "maximum_pressure": {"decision_timetable": 1, "scope_commitment": -5, "longer_term": -4, "reference_value": 0, "hold_position": -2}
+    "concession_pair_modifiers": {
+      "revenue_recovery": {
+        "price_protection": {"decision_timetable": 5, "scope_commitment": 1, "longer_term": 2, "reference_value": 3, "hold_position": -2}
+      },
+      "expansion": {
+        "migration_incentive": {"decision_timetable": 4, "scope_commitment": 2, "longer_term": -1, "reference_value": 0, "hold_position": -3}
+      },
+      "account_protection": {
+        "implementation_support": {"decision_timetable": 5, "scope_commitment": 0, "longer_term": 1, "reference_value": 4, "hold_position": -2}
+      },
+      "dependency_growth": {
+        "flexibility_rights": {"decision_timetable": 4, "scope_commitment": -5, "longer_term": -4, "reference_value": 2, "hold_position": 0}
+      },
+      "maximum_pressure": {
+        "no_additional_concession": {"decision_timetable": -3, "scope_commitment": -7, "longer_term": -6, "reference_value": -1, "hold_position": 3}
+      }
     },
     "customer_economic_scores": {
       "competitive_leverage": 30,
@@ -339,6 +363,11 @@ window.NEGOTIATION_SCENARIOS = {
         "change_direction": {"benefit": "Allows the customer to respond to new information before final commitment.", "risk": "A late switch can destroy credibility or forfeit negotiated value.", "advice": "Change direction only where the replacement outcome is demonstrably stronger."}
       },
       "supplier_actions": {
+        "price_protection": {"signal": "SAP is willing to trade future pricing certainty for reciprocal customer value.", "objective": "Protect revenue while making commitment more attractive.", "response": "Trade only proportionate customer value and preserve flexibility."},
+        "migration_incentive": {"signal": "SAP is willing to fund part of the transition to accelerate migration.", "objective": "Increase new business and transformation momentum.", "response": "Value the incentive against the full commitment and implementation risk."},
+        "flexibility_rights": {"signal": "SAP is willing to reduce some commitment rigidity.", "objective": "Secure transformation while lowering customer resistance to lock-in.", "response": "Use the flexibility to avoid overcommitting scope or term."},
+        "implementation_support": {"signal": "SAP is protecting the account by reducing execution friction.", "objective": "Preserve long-term relationship value and improve delivery confidence.", "response": "Define the support deliverables and do not overpay for relationship value."},
+        "no_additional_concession": {"signal": "SAP believes it can hold its position without offering additional value.", "objective": "Preserve leverage and enforce strategic direction.", "response": "Do not make an expensive reciprocal concession without measurable supplier value."},
         "status_quo": {"signal": "The supplier sees no immediate need to improve its position.", "objective": "Preserve current commercial terms and optionality.", "response": "Test the supplier's assumptions with deadlines, alternatives and quantified consequences."},
         "increase_tco": {"signal": "The supplier is monetising delay and protecting profitability.", "objective": "Increase the economic cost of remaining on the legacy platform.", "response": "Quantify the full delay cost and compare it with migration and alternative-platform options."},
         "commercial_concession": {"signal": "The supplier is willing to trade economics for migration or expansion.", "objective": "Accelerate new business while preserving account value.", "response": "Separate genuine value from commitments that increase dependency."},
