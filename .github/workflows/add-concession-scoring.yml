@@ -1,0 +1,73 @@
+name: Add concession scoring
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-concession-scoring.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-scoring:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add profile-sensitive concession scoring
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('app.js')
+          text = app.read_text()
+          old = "function score(){const o=st.finalOutcome,ach=st.g.objective_achievement[o]||{customer:[],supplier:[]};const cs=(ach.customer||[]).reduce((n,x)=>n+(st.g.customer_objective_points[x]||0),0);const ss=(ach.supplier||[]).reduce((n,x)=>n+(st.g.profiles[st.profile].hidden_distribution[x]||0),0);const ce=st.g.customer_economic_scores[o]??0,se=st.g.supplier_economic_scores[o]??0;return {ach,cs,ss,ce,se,cf:cs+ce,sf:ss+se}}"
+          new = "function concessionModifier(){const action=st.concessionExchange;if(!action)return 0;return Number(st.g.concession_modifiers?.[st.profile]?.[action]??0)}\nfunction score(){const o=st.finalOutcome,ach=st.g.objective_achievement[o]||{customer:[],supplier:[]};const cs=(ach.customer||[]).reduce((n,x)=>n+(st.g.customer_objective_points[x]||0),0);const ss=(ach.supplier||[]).reduce((n,x)=>n+(st.g.profiles[st.profile].hidden_distribution[x]||0),0);const ce=st.g.customer_economic_scores[o]??0,se=st.g.supplier_economic_scores[o]??0,cm=concessionModifier();const cf=Math.max(0,Math.min(100,cs+ce+cm));return {ach,cs,ss,ce,se,cm,cf,sf:ss+se}}"
+          if old not in text:
+              raise SystemExit('score() target not found')
+          text = text.replace(old, new, 1)
+          text = text.replace("const q=score();st.q=q;const classification=classify(q.cf,q.sf),courseScore=Math.round(q.cf/10);", "const q=score();st.q=q;const classification=classify(q.cf,q.sf),courseScore=Math.max(0,Math.min(10,Math.round(q.cf/10)));", 1)
+          text = text.replace("<p>Strategic ${q.cs} · Economic ${q.ce}</p>", "<p>Strategic ${q.cs} · Economic ${q.ce} · Concession ${q.cm>=0?'+':''}${q.cm}</p>", 1)
+          app.write_text(text)
+
+          sc = Path('scenarios.js')
+          s = sc.read_text()
+          sap_anchor = '    "customer_economic_scores": {\n      "competitive_leverage": 30,'
+          sap_block = '''    "concession_modifiers": {
+      "revenue_recovery": {"decision_timetable": 4, "scope_commitment": 2, "longer_term": -2, "reference_value": 1, "hold_position": -4},
+      "expansion": {"decision_timetable": 3, "scope_commitment": 1, "longer_term": -1, "reference_value": 2, "hold_position": -3},
+      "account_protection": {"decision_timetable": 5, "scope_commitment": 0, "longer_term": 1, "reference_value": 4, "hold_position": -2},
+      "dependency_growth": {"decision_timetable": 2, "scope_commitment": -6, "longer_term": -5, "reference_value": 3, "hold_position": 1},
+      "maximum_pressure": {"decision_timetable": 1, "scope_commitment": -5, "longer_term": -4, "reference_value": 0, "hold_position": -2}
+    },
+'''
+          if sap_anchor not in s:
+              raise SystemExit('SAP anchor not found')
+          s = s.replace(sap_anchor, sap_block + sap_anchor, 1)
+
+          oracle_anchor = '    "customer_economic_scores": {\n      "improved_concession": 30,'
+          oracle_block = '''    "concession_modifiers": {
+      "revenue_recovery": {"future_subscription": 1, "cloud_commitment": -2, "longer_term": -1, "governance_commitment": 3, "hold_position": -4},
+      "expansion": {"future_subscription": -3, "cloud_commitment": -5, "longer_term": -2, "governance_commitment": 2, "hold_position": -3},
+      "account_protection": {"future_subscription": 0, "cloud_commitment": -2, "longer_term": 1, "governance_commitment": 5, "hold_position": -2},
+      "dependency_growth": {"future_subscription": -6, "cloud_commitment": -7, "longer_term": -5, "governance_commitment": 4, "hold_position": 1},
+      "maximum_pressure": {"future_subscription": -2, "cloud_commitment": -3, "longer_term": -2, "governance_commitment": 1, "hold_position": -4}
+    },
+'''
+          if oracle_anchor not in s:
+              raise SystemExit('Oracle anchor not found')
+          s = s.replace(oracle_anchor, oracle_block + oracle_anchor, 1)
+          sc.write_text(s)
+          PY
+
+          node --check app.js
+          node --check scenarios.js
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.js scenarios.js
+          git commit -m 'Make concession exchange affect negotiation scoring'
+          git push
