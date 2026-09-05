@@ -386,7 +386,7 @@ window.NEGOTIATION_SCENARIOS = {
     "game": {
       "id": 2,
       "name": "Oracle Audit",
-      "version": "6.0",
+      "version": "6.1",
       "assessment_id": "GAME-02"
     },
     "brief": "Oracle initiates a licensing audit. The customer seeks to minimize liability, maintain business continuity, reduce commercial risk, improve governance, and preserve optionality. Oracle seeks commercial recovery, future business, customer dependency, strategic enforcement, and long-term account value.",
@@ -525,6 +525,20 @@ window.NEGOTIATION_SCENARIOS = {
           "change_direction": "Select another valid Round 3 outcome."
         }
       }
+    },
+    "round4_supplier_offers": {
+      "liability_reduction": "Reduce the asserted audit liability in exchange for a commercially acceptable resolution.",
+      "audit_closure": "Provide explicit audit closure and release language once agreed obligations are completed.",
+      "price_protection": "Offer future price protection and clearer licence rights as part of a negotiated resolution.",
+      "governance_support": "Provide licence-governance support and clearer compliance guidance without requiring immediate product expansion.",
+      "no_additional_concession": "Oracle maintains its current commercial position and offers no additional value at this stage."
+    },
+    "round4_supplier_preferences": {
+      "revenue_recovery": ["liability_reduction", "audit_closure", "price_protection", "governance_support", "no_additional_concession"],
+      "expansion": ["price_protection", "liability_reduction", "audit_closure", "governance_support", "no_additional_concession"],
+      "account_protection": ["governance_support", "audit_closure", "liability_reduction", "price_protection", "no_additional_concession"],
+      "dependency_growth": ["price_protection", "liability_reduction", "audit_closure", "governance_support", "no_additional_concession"],
+      "maximum_pressure": ["no_additional_concession", "liability_reduction", "audit_closure", "price_protection", "governance_support"]
     },
     "path_rules": {
       "settlement_offer": [
@@ -678,12 +692,22 @@ window.NEGOTIATION_SCENARIOS = {
         ]
       }
     },
-    "concession_modifiers": {
-      "revenue_recovery": {"future_subscription": 1, "cloud_commitment": -2, "longer_term": -1, "governance_commitment": 3, "hold_position": -4},
-      "expansion": {"future_subscription": -3, "cloud_commitment": -5, "longer_term": -2, "governance_commitment": 2, "hold_position": -3},
-      "account_protection": {"future_subscription": 0, "cloud_commitment": -2, "longer_term": 1, "governance_commitment": 5, "hold_position": -2},
-      "dependency_growth": {"future_subscription": -6, "cloud_commitment": -7, "longer_term": -5, "governance_commitment": 4, "hold_position": 1},
-      "maximum_pressure": {"future_subscription": -2, "cloud_commitment": -3, "longer_term": -2, "governance_commitment": 1, "hold_position": -4}
+    "concession_pair_modifiers": {
+      "revenue_recovery": {
+        "liability_reduction": {"future_subscription": 2, "cloud_commitment": 0, "longer_term": 1, "governance_commitment": 4, "hold_position": -2}
+      },
+      "expansion": {
+        "price_protection": {"future_subscription": 1, "cloud_commitment": -2, "longer_term": 2, "governance_commitment": 0, "hold_position": -3}
+      },
+      "account_protection": {
+        "governance_support": {"future_subscription": 1, "cloud_commitment": -1, "longer_term": 1, "governance_commitment": 5, "hold_position": -2}
+      },
+      "dependency_growth": {
+        "price_protection": {"future_subscription": -4, "cloud_commitment": -6, "longer_term": -3, "governance_commitment": 3, "hold_position": 1}
+      },
+      "maximum_pressure": {
+        "no_additional_concession": {"future_subscription": -6, "cloud_commitment": -7, "longer_term": -5, "governance_commitment": -2, "hold_position": 3}
+      }
     },
     "customer_economic_scores": {
       "improved_concession": 30,
@@ -777,6 +801,11 @@ window.NEGOTIATION_SCENARIOS = {
         "change_direction": {"benefit": "Allows a final response to new supplier behaviour.", "risk": "Late changes can forfeit negotiated value or increase escalation.", "advice": "Change direction only after comparing the replacement with Commit on the same facts."}
       },
       "supplier_actions": {
+        "liability_reduction": {"signal": "Oracle is prepared to reduce asserted liability to secure a commercial resolution.", "objective": "Recover value while improving the probability of settlement.", "response": "Compare the reduction with the value and lock-in of anything requested in return."},
+        "audit_closure": {"signal": "Oracle is prepared to exchange formal closure certainty for agreed customer obligations.", "objective": "Close the audit while preserving enforceable commercial value.", "response": "Require explicit release language and define exactly what closes the audit."},
+        "price_protection": {"signal": "Oracle is willing to improve future commercial certainty to encourage agreement.", "objective": "Secure future business while reducing resistance to commitment.", "response": "Value the protection against the cost and dependency of the reciprocal commitment."},
+        "governance_support": {"signal": "Oracle is willing to support future compliance and licence governance.", "objective": "Protect the account and reduce repeat audit friction.", "response": "Define deliverables and avoid exchanging excessive future business for governance support."},
+        "no_additional_concession": {"signal": "Oracle believes its current audit position is strong enough to avoid further movement.", "objective": "Preserve enforcement and commercial leverage.", "response": "Do not offer an expensive reciprocal concession without measurable value in return."},
         "settlement_offer": {"signal": "Oracle is seeking a direct commercial recovery and closure.", "objective": "Convert audit findings into immediate profitability.", "response": "Test liability evidence, closure language and total settlement value."},
         "concession_offer": {"signal": "Oracle is willing to trade audit economics for future business.", "objective": "Create new business and preserve account value.", "response": "Unbundle audit resolution from future products and commitments."},
         "audit_expansion": {"signal": "Oracle is increasing pressure and information asymmetry.", "objective": "Strengthen commercial leverage and potential recovery.", "response": "Control scope, evidence requests, governance and legal review."},
