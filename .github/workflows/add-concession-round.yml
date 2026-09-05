@@ -1,0 +1,161 @@
+name: Add concession exchange round
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-concession-round.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-games:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add sixth concession-exchange round
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app_path = Path('app.js')
+          scenarios_path = Path('scenarios.js')
+          app = app_path.read_text()
+          scenarios = scenarios_path.read_text()
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 match, found {count}')
+              return text.replace(old, new, 1)
+
+          # ---------- app.js ----------
+          app = replace_once(app,
+            '''function roundProgress(round){\n  return `<div class="round-progress" aria-label="Round ${round} of 5">${[1,2,3,4,5].map(n=>`<span class="round-step ${n<round?'done':n===round?'current':''}"><b>${n}</b><small>${n===round?'Current':''}</small></span>`).join('')}</div>`;\n}''',
+            '''function roundProgress(round){\n  return `<div class="round-progress" aria-label="Round ${round} of 6">${[1,2,3,4,5,6].map(n=>`<span class="round-step ${n<round?'done':n===round?'current':''}"><b>${n}</b><small>${n===round?'Current':''}</small></span>`).join('')}</div>`;\n}''',
+            'round progress')
+
+          app = replace_once(app,
+            '''set(`<div class="screen-head"><div><p class="section-kicker">Choose a scenario</p><h2>Negotiation simulations</h2><p>Select a case and negotiate through five rounds. Your customer result can contribute up to 10 course points.</p></div></div><div id="scenario-grid" class="scenario-grid"></div>`);''',
+            '''set(`<div class="screen-head"><div><p class="section-kicker">Choose a scenario</p><h2>Negotiation simulations</h2><p>Select a case and negotiate through six rounds. Your customer result can contribute up to 10 course points.</p></div></div><div id="scenario-grid" class="scenario-grid"></div>`);''',
+            'home round count')
+
+          app = replace_once(app,
+            '''<span class="scenario-type">5-round simulation · up to 10 course points</span>''',
+            '''<span class="scenario-type">6-round simulation · up to 10 course points</span>''',
+            'scenario card round count')
+
+          app = replace_once(app,
+            '''function playRound(){\n  if(st.round===2||st.round===4){supplierTurn();return}\n  const r=st.g.rounds[`round_${st.round}`];\n  set(`<div class="round-head"><div><p class="section-kicker">${st.g.game.name}</p><h2>Round ${st.round} of 5 · Your decision</h2></div></div>${roundProgress(st.round)}\n    <section class="action-section"><h3>Available actions</h3><p>Choose the action you would take at this point in the negotiation.</p><div id="available" class="action-grid"></div></section>''',
+            '''function playRound(){\n  if(st.round===2||st.round===5){supplierTurn();return}\n  const r=st.g.rounds[`round_${st.round}`];\n  const isConcessionRound=st.round===4;\n  const sectionTitle=isConcessionRound?'Concession exchange':'Available actions';\n  const sectionPrompt=isConcessionRound?'Choose what value you are prepared to trade for an improved supplier position.':'Choose the action you would take at this point in the negotiation.';\n  set(`<div class="round-head"><div><p class="section-kicker">${st.g.game.name}</p><h2>Round ${st.round} of 6 · ${isConcessionRound?'Concession exchange':'Your decision'}</h2></div></div>${roundProgress(st.round)}\n    <section class="action-section"><h3>${sectionTitle}</h3><p>${sectionPrompt}</p><div id="available" class="action-grid"></div></section>''',
+            'playRound')
+
+          app = replace_once(app,
+            '''function customerAction(a){const available=availableActionsForRound(st.round);recordDecision(a,available);if(st.round===5&&a==='change_direction')return chooseReplacement();st.history.push({round:st.round,actor:'Customer',action:a});if(st.g.terminal&&st.g.terminal[a]){st.finalOutcome=st.g.terminal[a];return results()}if(st.round===3)st.round3=a;if(st.round===5){if(a==='commit') return finalizeCurrent();if(a==='withdraw'){st.finalOutcome=st.key==='SAP_Transformation'?'continue_delay':'dispute';return results()}}st.round++;playRound()}''',
+            '''function customerAction(a){const available=availableActionsForRound(st.round);recordDecision(a,available);if(st.round===6&&a==='change_direction')return chooseReplacement();st.history.push({round:st.round,actor:'Customer',action:a});const effects=st.g.action_effects[a]||[];effects.forEach(e=>{if(!st.effects.includes(e))st.effects.push(e)});if(st.g.terminal&&st.g.terminal[a]){st.finalOutcome=st.g.terminal[a];return results()}if(st.round===3)st.round3=a;if(st.round===4)st.concessionExchange=a;if(st.round===6){if(a==='commit') return finalizeCurrent();if(a==='withdraw'){st.finalOutcome=st.key==='SAP_Transformation'?'continue_delay':'dispute';return results()}}st.round++;playRound()}''',
+            'customerAction')
+
+          app = replace_once(app,
+            '''if(st.round===4&&st.round3==='negotiate_concession')prefKey='round_4_after_negotiate_concession';''',
+            '''if(st.round===5&&st.round3==='negotiate_concession')prefKey='round_5_after_negotiate_concession';''',
+            'supplier preference special case')
+
+          app = replace_once(app,
+            '''<h2>Round ${st.round} of 5 · Supplier response</h2>''',
+            '''<h2>Round ${st.round} of 6 · Supplier response</h2>''',
+            'supplier header')
+
+          app = replace_once(app,
+            '''function resolveCurrentOutcome(){let o=st.round3;if((st.g.intermediate_actions||[]).includes(o)){const supplier4=st.history.find(h=>h.round===4)?.action;o=st.g.outcome_resolution?.[o]?.[supplier4]}return o||null}''',
+            '''function resolveCurrentOutcome(){let o=st.round3;if((st.g.intermediate_actions||[]).includes(o)){const supplier5=st.history.find(h=>h.round===5)?.action;o=st.g.outcome_resolution?.[o]?.[supplier5]}return o||null}''',
+            'resolve outcome supplier round')
+
+          app = replace_once(app,
+            '''<h2>Round 5 of 5 · Change direction</h2></div></div>${roundProgress(5)}''',
+            '''<h2>Round 6 of 6 · Change direction</h2></div></div>${roundProgress(6)}''',
+            'replacement header')
+
+          app = replace_once(app,
+            '''st.history.push({round:5,actor:'Customer',action:`change_direction → ${a}`});''',
+            '''st.history.push({round:6,actor:'Customer',action:`change_direction → ${a}`});''',
+            'replacement history round')
+
+          app = replace_once(app,
+            '''function missedOpportunityGap(){const r3=st.decisions.find(d=>d.round===3);const r5=st.decisions.find(d=>d.round===5);if(!r3||!r5)return 0;''',
+            '''function missedOpportunityGap(){const r3=st.decisions.find(d=>d.round===3);const r6=st.decisions.find(d=>d.round===6);if(!r3||!r6)return 0;''',
+            'missed opportunity final round')
+
+          app = replace_once(app,
+            '''function decisionOutcome(d){if(d.round===1&&st.g.terminal?.[d.action])return st.g.terminal[d.action];if(d.round===3&&!(st.g.intermediate_actions||[]).includes(d.action))return d.action;if(d.round===5)return d.action==='commit'?resolveCurrentOutcome():d.action==='withdraw'?(st.key==='SAP_Transformation'?'continue_delay':'dispute'):d.replacement;return null}''',
+            '''function decisionOutcome(d){if(d.round===1&&st.g.terminal?.[d.action])return st.g.terminal[d.action];if(d.round===3&&!(st.g.intermediate_actions||[]).includes(d.action))return d.action;if(d.round===6)return d.action==='commit'?resolveCurrentOutcome():d.action==='withdraw'?(st.key==='SAP_Transformation'?'continue_delay':'dispute'):d.replacement;return null}''',
+            'decisionOutcome')
+
+          app = replace_once(app,
+            '''else if(d.round===5){const preserved=resolveCurrentOutcome();alternatives=[preserved,...(d.replacementAvailable||[])].filter((a,i,arr)=>a&&a!==selected&&arr.indexOf(a)===i)}''',
+            '''else if(d.round===6){const preserved=resolveCurrentOutcome();alternatives=[preserved,...(d.replacementAvailable||[])].filter((a,i,arr)=>a&&a!==selected&&arr.indexOf(a)===i)}''',
+            'rating final round')
+
+          app = replace_once(app,
+            '''}else if(d.round===5){consequence=`The decision made ${label(out)} the final outcome.`;options=d.action==='commit'?'The current outcome was preserved.':`Commit would have preserved ${label(resolveCurrentOutcome())}.`}''',
+            '''}else if(d.round===4){consequence=`You offered ${label(d.action)} as the value exchange before the supplier's next response.`;options=`Other concession choices available: ${d.available.filter(x=>x!==d.action).map(label).join(', ')||'None'}.`; }else if(d.round===6){consequence=`The decision made ${label(out)} the final outcome.`;options=d.action==='commit'?'The current outcome was preserved.':`Commit would have preserved ${label(resolveCurrentOutcome())}.`}''',
+            'decision review rounds')
+
+          app = replace_once(app,
+            '''}else if(d.round===5){const preserved=resolveCurrentOutcome();selected=d.action==='commit'?preserved:d.action==='withdraw'?(st.key==='SAP_Transformation'?'continue_delay':'dispute'):d.replacement;''',
+            '''}else if(d.round===6){const preserved=resolveCurrentOutcome();selected=d.action==='commit'?preserved:d.action==='withdraw'?(st.key==='SAP_Transformation'?'continue_delay':'dispute'):d.replacement;''',
+            'opportunity cost final round')
+
+          # ---------- scenarios.js ----------
+          scenarios = scenarios.replace('"version": "5.0"', '"version": "6.0"')
+          if scenarios.count('"version": "6.0"') != 2:
+              raise SystemExit('scenario versions: expected two 6.0 versions')
+
+          sap_old = '''      "round_4": {\n        "actor": "supplier",\n        "actions": {\n          "maintain_position": "Maintain current position.",\n          "relationship_preservation": "Preserve long-term relationship.",\n          "escalate_commercial_pressure": "Increase commercial pressure.",\n          "eol_enforcement": "Escalate end-of-life enforcement."\n        }\n      },\n      "round_5": {\n        "actor": "customer",\n        "actions": {\n          "commit": "Confirm Round 3 decision.",\n          "withdraw": "Replace Round 3 decision with continue_delay.",\n          "change_direction": "Select another valid Round 3 outcome."\n        }\n      }'''
+          sap_new = '''      "round_4": {\n        "actor": "customer",\n        "actions": {\n          "decision_timetable": "Offer a firm decision and migration timetable in exchange for better economics and implementation support.",\n          "scope_commitment": "Offer a broader SAP cloud or platform scope in exchange for stronger commercial terms.",\n          "longer_term": "Offer a longer contract term in exchange for price protection, flexibility and implementation safeguards.",\n          "reference_value": "Offer reference-customer or joint case-study value instead of additional financial commitment.",\n          "hold_position": "Offer no additional concession and require SAP to improve the proposal first."\n        }\n      },\n      "round_5": {\n        "actor": "supplier",\n        "actions": {\n          "maintain_position": "Maintain current position.",\n          "relationship_preservation": "Preserve long-term relationship.",\n          "escalate_commercial_pressure": "Increase commercial pressure.",\n          "eol_enforcement": "Escalate end-of-life enforcement."\n        }\n      },\n      "round_6": {\n        "actor": "customer",\n        "actions": {\n          "commit": "Confirm Round 3 decision.",\n          "withdraw": "Replace Round 3 decision with continue_delay.",\n          "change_direction": "Select another valid Round 3 outcome."\n        }\n      }'''
+          scenarios = replace_once(scenarios, sap_old, sap_new, 'SAP round block')
+
+          oracle_old = '''      "round_4": {\n        "actor": "supplier",\n        "actions": {\n          "improved_concession": "Improve the commercial offer to encourage agreement.",\n          "maintain_position": "Continue the audit process without additional escalation.",\n          "relationship_preservation": "Seek a cooperative commercial resolution.",\n          "escalated_pressure": "Increase commercial and legal pressure while continuing the dispute.",\n          "litigation_arbitration": "Initiate litigation or arbitration proceedings."\n        }\n      },\n      "round_5": {\n        "actor": "customer",\n        "actions": {\n          "commit": "Confirm current negotiation outcome.",\n          "withdraw": "Replace Round 3 decision with dispute.",\n          "change_direction": "Select another valid Round 3 outcome."\n        }\n      }'''
+          oracle_new = '''      "round_4": {\n        "actor": "customer",\n        "actions": {\n          "future_subscription": "Offer a future subscription commitment in exchange for reduced audit liability and explicit audit closure.",\n          "cloud_commitment": "Offer a cloud migration commitment in exchange for improved settlement economics and closure terms.",\n          "longer_term": "Offer a longer agreement term in exchange for reduced liability, price protection and clearer future rights.",\n          "governance_commitment": "Offer stronger licence governance, audit cooperation and compliance controls without additional product commitment.",\n          "hold_position": "Offer no new commitment and require Oracle to improve its commercial or legal position first."\n        }\n      },\n      "round_5": {\n        "actor": "supplier",\n        "actions": {\n          "improved_concession": "Improve the commercial offer to encourage agreement.",\n          "maintain_position": "Continue the audit process without additional escalation.",\n          "relationship_preservation": "Seek a cooperative commercial resolution.",\n          "escalated_pressure": "Increase commercial and legal pressure while continuing the dispute.",\n          "litigation_arbitration": "Initiate litigation or arbitration proceedings."\n        }\n      },\n      "round_6": {\n        "actor": "customer",\n        "actions": {\n          "commit": "Confirm current negotiation outcome.",\n          "withdraw": "Replace Round 3 decision with dispute.",\n          "change_direction": "Select another valid Round 3 outcome."\n        }\n      }'''
+          scenarios = replace_once(scenarios, oracle_old, oracle_new, 'Oracle round block')
+
+          # Supplier preference stage is now Round 5.
+          scenarios = scenarios.replace('"round_4": [', '"round_5": [')
+          scenarios = scenarios.replace('"round_4_after_negotiate_concession": [', '"round_5_after_negotiate_concession": [')
+
+          sap_analysis_anchor = '''        "competitive_leverage": {"benefit": "Strengthens cost and strategic leverage while preserving alternatives.", "risk": "Leverage is weak if switching options are not credible or executable.", "advice": "Validate technical feasibility, switching cost and executive sponsorship before relying on competition."},\n        "commit":'''
+          sap_analysis_insert = '''        "competitive_leverage": {"benefit": "Strengthens cost and strategic leverage while preserving alternatives.", "risk": "Leverage is weak if switching options are not credible or executable.", "advice": "Validate technical feasibility, switching cost and executive sponsorship before relying on competition."},\n        "decision_timetable": {"benefit": "Trades decision certainty rather than immediate price or scope.", "risk": "A timetable can become a de facto commitment if milestones are not conditional.", "advice": "Make timing conditional on agreed economics, implementation support and governance gates."},\n        "scope_commitment": {"benefit": "Uses incremental platform scope as tradable value for stronger economics.", "risk": "Increases dependency and may buy products before demand is fully validated.", "advice": "Value the added scope independently and preserve reallocation, ramp and exit flexibility."},\n        "longer_term": {"benefit": "Offers contract duration in exchange for measurable price and risk protections.", "risk": "Extends lock-in if protections are weaker than the value of the term conceded.", "advice": "Trade term only for quantified price protection, flexibility and implementation safeguards."},\n        "reference_value": {"benefit": "Offers non-cash relationship value while preserving commercial flexibility.", "risk": "The supplier may value it less than a financial or scope commitment.", "advice": "Use reference rights only where they are genuinely valuable to SAP and tightly defined."},\n        "hold_position": {"benefit": "Preserves leverage and avoids giving value before SAP improves its offer.", "risk": "May stall the negotiation if the supplier sees no reason to move.", "advice": "Hold only with a clear ask, credible alternative and defined next escalation."},\n        "commit":'''
+          scenarios = replace_once(scenarios, sap_analysis_anchor, sap_analysis_insert, 'SAP concession analysis')
+
+          oracle_analysis_anchor = '''        "rejection_of_notice": {"benefit": "Preserves the strongest challenge to Oracle's formal position.", "risk": "Creates litigation, arbitration and continuity exposure.", "advice": "Use only with legal support, evidence strength and a funded dispute plan."},\n        "commit":'''
+          oracle_analysis_insert = '''        "rejection_of_notice": {"benefit": "Preserves the strongest challenge to Oracle's formal position.", "risk": "Creates litigation, arbitration and continuity exposure.", "advice": "Use only with legal support, evidence strength and a funded dispute plan."},\n        "future_subscription": {"benefit": "Trades future subscription value for lower immediate audit exposure and closure.", "risk": "Can replace disputed liability with a new long-term dependency.", "advice": "Price the future subscription independently and require explicit audit closure and release language."},\n        "cloud_commitment": {"benefit": "Uses a strategic migration commitment to improve settlement economics.", "risk": "Can convert audit pressure into cloud lock-in before the cloud business case is proven.", "advice": "Separate the cloud business case from the audit and preserve migration, pricing and exit protections."},\n        "longer_term": {"benefit": "Trades contract duration for reduced liability and future price certainty.", "risk": "Extends dependency if the liability reduction does not justify the term conceded.", "advice": "Compare the value of the term with the settlement reduction and require measurable protections."},\n        "governance_commitment": {"benefit": "Offers stronger compliance and governance without buying additional products.", "risk": "May not satisfy a supplier focused primarily on revenue recovery or expansion.", "advice": "Use governance commitments to support closure while preserving the right to challenge unsupported findings."},\n        "hold_position": {"benefit": "Avoids exchanging future business for disputed audit exposure.", "risk": "May increase legal or commercial pressure if Oracle sees no path to agreement.", "advice": "Hold only with evidence, executive governance and a credible settlement or dispute alternative."},\n        "commit":'''
+          scenarios = replace_once(scenarios, oracle_analysis_anchor, oracle_analysis_insert, 'Oracle concession analysis')
+
+          app_path.write_text(app)
+          scenarios_path.write_text(scenarios)
+          PY
+
+          node --check app.js
+          node --check scenarios.js
+
+          # Basic deterministic checks for the new sequence.
+          grep -q 'Round ${st.round} of 6' app.js
+          grep -q '6-round simulation' app.js
+          grep -q '"round_6"' scenarios.js
+          grep -q 'Concession exchange' app.js
+
+      - name: Commit updated games
+        shell: bash
+        run: |
+          if git diff --quiet -- app.js scenarios.js; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js scenarios.js
+          git commit -m "Add concession exchange round to negotiation games"
+          git push
