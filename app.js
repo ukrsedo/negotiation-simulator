@@ -95,26 +95,27 @@ function sapConcessionRound(){
   available.forEach(a=>{const b=document.createElement('button');b.className='action-card';b.innerHTML=`<strong>${label(a)}</strong><span>${r.actions[a]}</span><em>Select →</em>`;b.onclick=()=>customerAction(a);av.appendChild(b)});
 }
 function oracleConcessionRound(){
-  const r=st.g.rounds.round_4;
+  const r=st.g.rounds.round_4,path=st.round3;
   if(!st.oracleSupplierOffer){
-    const prefs=st.g.round4_supplier_preferences?.[st.profile]||[],offer=prefs[0]||Object.keys(st.g.round4_supplier_offers||{})[0];
-    if(!offer){set('<p class="notice error">No Oracle concession offer is configured.</p>');return}
+    const prefs=st.g.round4_supplier_preferences_by_path?.[path]?.[st.profile]||st.g.round4_supplier_preferences?.[st.profile]||[],offer=prefs[0]||Object.keys(st.g.round4_supplier_offers||{})[0];
+    if(!offer){set('<p class="notice error">No Oracle concession offer is configured for this negotiation path.</p>');return}
     st.oracleSupplierOffer=offer;
-    st.supplierDecisions.push({round:4,action:offer,preferenceKey:'round4_supplier_offer',rank:1,validActions:[...prefs],effects:[]});
+    st.supplierDecisions.push({round:4,action:offer,preferenceKey:`round4_${path}`,rank:1,validActions:[...prefs],effects:[]});
     st.history.push({round:4,actor:'Supplier',action:offer});
   }
-  const offer=st.oracleSupplierOffer,offerText=st.g.round4_supplier_offers?.[offer]||label(offer);
+  const offer=st.oracleSupplierOffer,offerText=st.g.round4_supplier_offers?.[offer]||label(offer),noMove=offer==='no_additional_concession';
   set(`<div class="round-head"><div><p class="section-kicker">${st.g.game.name}</p><h2>Round 4 of 6 · Concession exchange</h2></div></div>${roundProgress(4)}
     <div class="supplier-response"><span class="response-label">Oracle is prepared to offer</span><h3>${label(offer)}</h3><p>${offerText}</p></div>
-    <section class="action-section"><h3>What are you prepared to trade in return?</h3><p>Choose the reciprocal customer concession. The value of the exchange depends on both sides of the trade.</p><div id="available" class="action-grid"></div></section>`);
-  const av=document.getElementById('available'),available=Object.keys(r.actions).filter(a=>validity(a).ok);
+    <section class="action-section"><h3>${noMove?'Your response':'What are you prepared to trade in return?'}</h3><p>${noMove?'Oracle has offered no additional value. Preserve leverage rather than giving away future commercial value unilaterally.':'Choose the reciprocal customer concession. The value of the exchange depends on both sides of the trade.'}</p><div id="available" class="action-grid"></div></section>`);
+  const av=document.getElementById('available');
+  const available=(noMove?['hold_position']:Object.keys(r.actions)).filter(a=>r.actions[a]&&validity(a).ok);
   available.forEach(a=>{const b=document.createElement('button');b.className='action-card';b.innerHTML=`<strong>${label(a)}</strong><span>${r.actions[a]}</span><em>Select →</em>`;b.onclick=()=>customerAction(a);av.appendChild(b)});
 }
 function currentConcessionOffer(){return st.key==='SAP_Transformation'?st.sapSupplierOffer:st.key==='Oracle_Audit'?st.oracleSupplierOffer:null}
 function concessionPairValue(action){
   const offer=currentConcessionOffer();
   if(!offer)return Number(st.g.concession_modifiers?.[st.profile]?.[action]??0);
-  return Number(st.g.concession_pair_modifiers?.[st.profile]?.[offer]?.[action]??0);
+  return Number(st.g.concession_pair_modifiers?.[st.profile]?.[offer]?.[action]??st.g.concession_pair_defaults?.[offer]?.[action]??0);
 }
 function recordDecision(action,available,extra={}){st.decisions.push({round:st.round,action,available:[...available],effectsBefore:[...st.effects],historyBefore:st.history.map(x=>({...x})),...extra})}
 function customerAction(a){const available=availableActionsForRound(st.round);recordDecision(a,available);if(st.round===6&&a==='change_direction')return chooseReplacement();st.history.push({round:st.round,actor:'Customer',action:a});const effects=st.g.action_effects[a]||[];effects.forEach(e=>{if(!st.effects.includes(e))st.effects.push(e)});if(st.g.terminal&&st.g.terminal[a]){st.finalOutcome=st.g.terminal[a];return results()}if(st.round===3)st.round3=a;if(st.round===4)st.concessionExchange=a;if(st.round===6){if(a==='commit') return finalizeCurrent();if(a==='withdraw'){st.finalOutcome=st.key==='SAP_Transformation'?'continue_delay':'dispute';return results()}}st.round++;playRound()}

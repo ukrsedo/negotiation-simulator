@@ -386,7 +386,7 @@ window.NEGOTIATION_SCENARIOS = {
     "game": {
       "id": 2,
       "name": "Oracle Audit",
-      "version": "6.1",
+      "version": "6.2",
       "assessment_id": "GAME-02"
     },
     "brief": "Oracle initiates a licensing audit. The customer seeks to minimize liability, maintain business continuity, reduce commercial risk, improve governance, and preserve optionality. Oracle seeks commercial recovery, future business, customer dependency, strategic enforcement, and long-term account value.",
@@ -533,12 +533,42 @@ window.NEGOTIATION_SCENARIOS = {
       "governance_support": "Provide licence-governance support and clearer compliance guidance without requiring immediate product expansion.",
       "no_additional_concession": "Oracle maintains its current commercial position and offers no additional value at this stage."
     },
-    "round4_supplier_preferences": {
-      "revenue_recovery": ["liability_reduction", "audit_closure", "price_protection", "governance_support", "no_additional_concession"],
-      "expansion": ["price_protection", "liability_reduction", "audit_closure", "governance_support", "no_additional_concession"],
-      "account_protection": ["governance_support", "audit_closure", "liability_reduction", "price_protection", "no_additional_concession"],
-      "dependency_growth": ["price_protection", "liability_reduction", "audit_closure", "governance_support", "no_additional_concession"],
-      "maximum_pressure": ["no_additional_concession", "liability_reduction", "audit_closure", "price_protection", "governance_support"]
+    "round4_supplier_preferences_by_path": {
+      "settlement": {
+        "revenue_recovery": ["audit_closure", "liability_reduction", "price_protection", "governance_support", "no_additional_concession"],
+        "expansion": ["price_protection", "audit_closure", "liability_reduction", "governance_support", "no_additional_concession"],
+        "account_protection": ["audit_closure", "governance_support", "liability_reduction", "price_protection", "no_additional_concession"],
+        "dependency_growth": ["price_protection", "audit_closure", "liability_reduction", "governance_support", "no_additional_concession"],
+        "maximum_pressure": ["audit_closure", "no_additional_concession", "liability_reduction", "price_protection", "governance_support"]
+      },
+      "concession": {
+        "revenue_recovery": ["audit_closure", "liability_reduction", "price_protection", "governance_support", "no_additional_concession"],
+        "expansion": ["price_protection", "audit_closure", "liability_reduction", "governance_support", "no_additional_concession"],
+        "account_protection": ["governance_support", "audit_closure", "liability_reduction", "price_protection", "no_additional_concession"],
+        "dependency_growth": ["price_protection", "liability_reduction", "audit_closure", "governance_support", "no_additional_concession"],
+        "maximum_pressure": ["no_additional_concession", "audit_closure", "liability_reduction", "price_protection", "governance_support"]
+      },
+      "negotiate_concession": {
+        "revenue_recovery": ["liability_reduction", "audit_closure", "price_protection", "governance_support", "no_additional_concession"],
+        "expansion": ["price_protection", "liability_reduction", "audit_closure", "governance_support", "no_additional_concession"],
+        "account_protection": ["governance_support", "audit_closure", "liability_reduction", "price_protection", "no_additional_concession"],
+        "dependency_growth": ["price_protection", "liability_reduction", "audit_closure", "governance_support", "no_additional_concession"],
+        "maximum_pressure": ["no_additional_concession", "liability_reduction", "audit_closure", "price_protection", "governance_support"]
+      },
+      "dispute": {
+        "revenue_recovery": ["liability_reduction", "audit_closure", "governance_support", "no_additional_concession", "price_protection"],
+        "expansion": ["governance_support", "liability_reduction", "audit_closure", "no_additional_concession", "price_protection"],
+        "account_protection": ["governance_support", "audit_closure", "liability_reduction", "no_additional_concession", "price_protection"],
+        "dependency_growth": ["liability_reduction", "governance_support", "audit_closure", "no_additional_concession", "price_protection"],
+        "maximum_pressure": ["no_additional_concession", "liability_reduction", "audit_closure", "governance_support", "price_protection"]
+      },
+      "rejection_of_notice": {
+        "revenue_recovery": ["audit_closure", "liability_reduction", "no_additional_concession", "governance_support", "price_protection"],
+        "expansion": ["governance_support", "audit_closure", "no_additional_concession", "liability_reduction", "price_protection"],
+        "account_protection": ["audit_closure", "governance_support", "liability_reduction", "no_additional_concession", "price_protection"],
+        "dependency_growth": ["liability_reduction", "audit_closure", "no_additional_concession", "governance_support", "price_protection"],
+        "maximum_pressure": ["no_additional_concession", "audit_closure", "liability_reduction", "governance_support", "price_protection"]
+      }
     },
     "path_rules": {
       "settlement_offer": [
@@ -691,6 +721,13 @@ window.NEGOTIATION_SCENARIOS = {
           "improved_concession"
         ]
       }
+    },
+    "concession_pair_defaults": {
+      "liability_reduction": {"future_subscription": 2, "cloud_commitment": 0, "longer_term": 1, "governance_commitment": 4, "hold_position": -2},
+      "audit_closure": {"future_subscription": 2, "cloud_commitment": 0, "longer_term": 1, "governance_commitment": 5, "hold_position": -2},
+      "price_protection": {"future_subscription": 1, "cloud_commitment": -2, "longer_term": 2, "governance_commitment": 1, "hold_position": -3},
+      "governance_support": {"future_subscription": 0, "cloud_commitment": -2, "longer_term": 0, "governance_commitment": 5, "hold_position": -1},
+      "no_additional_concession": {"future_subscription": -6, "cloud_commitment": -7, "longer_term": -5, "governance_commitment": -2, "hold_position": 3}
     },
     "concession_pair_modifiers": {
       "revenue_recovery": {
