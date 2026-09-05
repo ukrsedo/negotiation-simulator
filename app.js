@@ -187,55 +187,60 @@ function sapDecisionScore(){
 
   return Math.max(0,Math.min(100,total));
 }
+function oracleRatingPercent(rating){
+  return ({Excellent:1,Strong:.8,Moderate:.5,Weak:.2,Poor:0})[rating]??0;
+}
+function oracleOpeningRating(d){
+  if(!d)return'Poor';
+  return d.action==='negotiate'?'Excellent':d.action==='cooperate'?'Strong':d.action==='dispute'?'Moderate':'Poor';
+}
+function oracleRound3ActionScore(a){
+  if(a==='negotiate_concession'){
+    const prefs=st.g.preferences?.[st.profile]?.round_5_after_negotiate_concession||[];
+    const supplier=prefs.find(x=>st.g.outcome_resolution?.negotiate_concession?.[x]);
+    const out=st.g.outcome_resolution?.negotiate_concession?.[supplier];
+    return out?outcomeScore(out):-999;
+  }
+  return outcomeScore(a);
+}
+function oracleRatingFromGap(gap){
+  const r=st.g.analysis_rules?.rating_rubric||{excellent:0,strong:10,moderate:20,weak:30};
+  if(gap<=r.excellent)return'Excellent';
+  if(gap<=r.strong)return'Strong';
+  if(gap<=r.moderate)return'Moderate';
+  if(gap<=r.weak)return'Weak';
+  return'Poor';
+}
+function oracleRound3Rating(d){
+  if(!d||!d.available?.length)return'Poor';
+  const scores=d.available.map(oracleRound3ActionScore).filter(Number.isFinite);
+  if(!scores.length)return'Poor';
+  const best=Math.max(...scores),chosen=oracleRound3ActionScore(d.action);
+  return oracleRatingFromGap(best-chosen);
+}
+function oracleConcessionRating(d){
+  if(!d||!d.available?.length)return'Poor';
+  const ranked=[...d.available].sort((a,b)=>concessionPairValue(b)-concessionPairValue(a));
+  const rank=ranked.indexOf(d.action);
+  return ['Excellent','Strong','Moderate','Weak','Poor'][Math.min(Math.max(rank,0),4)]||'Poor';
+}
+function oracleOutcomeRating(outcome){
+  if(!outcome)return'Poor';
+  const universe=['improved_concession','concession','settlement','dispute','rejection_of_notice'].filter(x=>st.g.objective_achievement?.[x]);
+  if(!universe.length)return'Poor';
+  const best=Math.max(...universe.map(x=>outcomeScore(x)));
+  return oracleRatingFromGap(best-outcomeScore(outcome));
+}
 function oracleDecisionScore(){
   const d1=st.decisions.find(d=>d.round===1),d3=st.decisions.find(d=>d.round===3),d4=st.decisions.find(d=>d.round===4),d6=st.decisions.find(d=>d.round===6);
   let total=0;
+  const award=(max,rating)=>Math.round(max*oracleRatingPercent(rating));
 
-  // Round 1: commercial resolution without premature acceptance or escalation is the strongest opening.
-  if(d1)total+=d1.action==='negotiate'?15:d1.action==='cooperate'?10:7;
-
-  // Round 3: reward the strength of the selected direction relative to the options actually available.
-  if(d3){
-    const scoreR3=a=>{
-      if(a==='negotiate_concession'){
-        const prefs=st.g.preferences?.[st.profile]?.round_5_after_negotiate_concession||[];
-        const supplier=prefs.find(x=>st.g.outcome_resolution?.negotiate_concession?.[x]);
-        const out=st.g.outcome_resolution?.negotiate_concession?.[supplier];
-        return out?outcomeScore(out):-999;
-      }
-      return outcomeScore(a);
-    };
-    const vals=d3.available.map(scoreR3).filter(Number.isFinite),best=Math.max(...vals),worst=Math.min(...vals),chosen=scoreR3(d3.action);
-    total+=best===worst?25:Math.round(10+15*((chosen-worst)/(best-worst)));
-  }
-
-  // Round 4: score the reciprocal concession against the best/worst trade available for that actual Oracle offer.
-  if(d4){
-    const vals=d4.available.map(concessionPairValue).filter(Number.isFinite),best=Math.max(...vals),worst=Math.min(...vals),chosen=concessionPairValue(d4.action);
-    total+=best===worst?20:Math.round(5+15*((chosen-worst)/(best-worst)));
-  }
-
-  // Round 6: compare the final decision with all valid final alternatives on the same facts.
-  if(d6){
-    const preserved=resolveCurrentOutcome(),candidates=[];
-    if(preserved)candidates.push({key:'commit',score:outcomeScore(preserved)});
-    if(d6.available.includes('withdraw'))candidates.push({key:'withdraw',score:outcomeScore('dispute')});
-    if(d6.available.includes('change_direction'))availableActionsForReplacement().forEach(o=>candidates.push({key:`change_direction:${o}`,score:outcomeScore(o)}));
-    const best=Math.max(...candidates.map(x=>x.score));
-    let chosenKey=d6.action;
-    if(d6.action==='change_direction'&&d6.replacement)chosenKey=`change_direction:${d6.replacement}`;
-    const chosen=candidates.find(x=>x.key===chosenKey)?.score;
-    if(Number.isFinite(chosen)){
-      const worst=Math.min(...candidates.map(x=>x.score));
-      total+=best===worst?15:Math.round(5+10*((chosen-worst)/(best-worst)));
-    }
-  }
-
-  // Final negotiated outcome remains relevant, but it no longer overwhelms the quality of the path taken.
-  const outcome=outcomeScore(st.finalOutcome);
-  const outcomeUniverse=['improved_concession','concession','settlement','dispute','rejection_of_notice'].filter(x=>st.g.objective_achievement?.[x]);
-  const vals=outcomeUniverse.map(x=>outcomeScore(x)),best=Math.max(...vals),worst=Math.min(...vals);
-  total+=best===worst?25:Math.round(10+15*((outcome-worst)/(best-worst)));
+  if(d1)total+=award(15,oracleOpeningRating(d1));
+  if(d3)total+=award(25,oracleRound3Rating(d3));
+  if(d4)total+=award(20,oracleConcessionRating(d4));
+  if(d6)total+=award(15,ratingForDecision(d6));
+  total+=award(25,oracleOutcomeRating(st.finalOutcome));
 
   return Math.max(0,Math.min(100,total));
 }
@@ -248,7 +253,7 @@ function effectExplanation(e){const map={concession_available:'Partial transitio
 function actionAnalysis(action,actor='customer'){return st.g.analysis_rules?.[actor+'_actions']?.[action]||null}
 function renderSupplierAnalysis(){return st.supplierDecisions.map(d=>{const alternatives=d.validActions.filter(x=>x!==d.action),a=actionAnalysis(d.action,'supplier');return `<div class="analysis-card"><strong>Round ${d.round}: ${label(d.action)}</strong><p><b>Commercial signal:</b> ${a?.signal||'No action-specific signal is defined.'}</p><p><b>Supplier objective:</b> ${a?.objective||'No action-specific objective is defined.'}</p><p><b>Why selected:</b> It was the highest-ranked valid action in the locked ${label(st.profile)} preference list.</p><p><b>Recommended customer response:</b> ${a?.response||'Assess the action against the customer objectives and available alternatives.'}</p><p><b>Other valid supplier actions:</b> ${alternatives.length?alternatives.map(label).join(', '):'None'}</p><p><b>State effect:</b> ${d.effects.length?d.effects.map(effectExplanation).join(' '):'No state effect was defined.'}</p></div>`}).join('')||'<p>No supplier decisions were recorded.</p>'}
 function decisionOutcome(d){if(d.round===1&&st.g.terminal?.[d.action])return st.g.terminal[d.action];if(d.round===3&&!(st.g.intermediate_actions||[]).includes(d.action))return d.action;if(d.round===6)return d.action==='commit'?resolveCurrentOutcome():d.action==='withdraw'?(st.key==='SAP_Transformation'?'continue_delay':'dispute'):d.replacement;return null}
-function ratingForDecision(d){if(d.round===1)return d.action==='accept_migration'?'Moderate':'Strong';if(d.round===4&&st.key==='SAP_Transformation')return sapConcessionRating(d);const selected=decisionOutcome(d);if(!selected)return'Moderate';let alternatives=[];if(d.round===3)alternatives=d.available.filter(a=>a!==d.action&&!(st.g.intermediate_actions||[]).includes(a));else if(d.round===6){const preserved=resolveCurrentOutcome();alternatives=[preserved,...(d.replacementAvailable||[])].filter((a,i,arr)=>a&&a!==selected&&arr.indexOf(a)===i)}if(!alternatives.length)return'Strong';const best=Math.max(...alternatives.map(a=>outcomeScore(a)));const gap=best-outcomeScore(selected);const r=st.g.analysis_rules?.rating_rubric||{excellent:0,strong:10,moderate:20,weak:30};if(gap<=r.excellent)return'Excellent';if(gap<=r.strong)return'Strong';if(gap<=r.moderate)return'Moderate';if(gap<=r.weak)return'Weak';return'Poor'}
+function ratingForDecision(d){if(st.key==='Oracle_Audit'&&d.round===1)return oracleOpeningRating(d);if(st.key==='Oracle_Audit'&&d.round===3)return oracleRound3Rating(d);if(st.key==='Oracle_Audit'&&d.round===4)return oracleConcessionRating(d);if(d.round===1)return d.action==='accept_migration'?'Moderate':'Strong';if(d.round===4&&st.key==='SAP_Transformation')return sapConcessionRating(d);const selected=decisionOutcome(d);if(!selected)return'Moderate';let alternatives=[];if(d.round===3)alternatives=d.available.filter(a=>a!==d.action&&!(st.g.intermediate_actions||[]).includes(a));else if(d.round===6){const preserved=resolveCurrentOutcome();alternatives=[preserved,...(d.replacementAvailable||[])].filter((a,i,arr)=>a&&a!==selected&&arr.indexOf(a)===i)}if(!alternatives.length)return'Strong';const best=Math.max(...alternatives.map(a=>outcomeScore(a)));const gap=best-outcomeScore(selected);const r=st.g.analysis_rules?.rating_rubric||{excellent:0,strong:10,moderate:20,weak:30};if(gap<=r.excellent)return'Excellent';if(gap<=r.strong)return'Strong';if(gap<=r.moderate)return'Moderate';if(gap<=r.weak)return'Weak';return'Poor'}
 function renderDecisionReview(){return st.decisions.map(d=>{const shown=d.replacement?`${label(d.action)} → ${label(d.replacement)}`:label(d.action),a=actionAnalysis(d.action,'customer'),out=decisionOutcome(d);let consequence='The negotiation continued.';let options='';if(d.round===1&&st.g.terminal?.[d.action]){consequence=`The negotiation ended immediately with ${label(st.g.terminal[d.action])}.`;options='All later negotiation options were closed.'}else if(d.round===1){options='The student retained access to later negotiation rounds.'}else if(d.round===3){consequence=out?`If preserved, this action would produce ${label(out)} with a customer score of ${outcomeScore(out)}.`:'The action created an intermediate state and preserved further negotiation.';options=`Other valid choices at the time: ${d.available.filter(x=>x!==d.action).map(label).join(', ')||'None'}.`}else if(d.round===4){consequence=currentConcessionOffer()?`${st.key==='SAP_Transformation'?'SAP':'Oracle'} offered ${label(currentConcessionOffer())}; you offered ${label(d.action)} in return.`:`You offered ${label(d.action)} as the value exchange before the supplier's next response.`;options=`Other concession choices available: ${d.available.filter(x=>x!==d.action).map(label).join(', ')||'None'}.`; }else if(d.round===6){consequence=`The decision made ${label(out)} the final outcome.`;options=d.action==='commit'?'The current outcome was preserved.':`Commit would have preserved ${label(resolveCurrentOutcome())}.`}const rating=ratingForDecision(d);return `<div class="analysis-card"><div class="analysis-card-head"><strong>Round ${d.round}: ${shown}</strong><span class="rating-badge ${ratingClass(rating)}">${rating}</span></div><p><b>Benefit:</b> ${a?.benefit||'The decision changed the available negotiation path.'}</p><p><b>Risk:</b> ${a?.risk||'The decision may reduce later options.'}</p><p><b>Decision consequence:</b> ${consequence}</p><p><b>Options affected:</b> ${options}</p><p><b>Advice:</b> ${a?.advice||'Compare the decision with the strongest valid alternative using the same information available at the time.'}</p></div>`}).join('')}
 function opportunityCost(d){let selected,alternatives;if(d.round===3){selected=d.action;if((st.g.intermediate_actions||[]).includes(selected))return null;alternatives=d.available.filter(a=>a!==selected&&!(st.g.intermediate_actions||[]).includes(a))}else if(d.round===6){const preserved=resolveCurrentOutcome();selected=d.action==='commit'?preserved:d.action==='withdraw'?(st.key==='SAP_Transformation'?'continue_delay':'dispute'):d.replacement;alternatives=[preserved,...(d.replacementAvailable||[])].filter((a,i,arr)=>a&&a!==selected&&arr.indexOf(a)===i)}else return null;if(!selected||!alternatives.length)return null;const best=[...alternatives].sort((a,b)=>outcomeScore(b)-outcomeScore(a))[0];const diff=outcomeScore(selected)-outcomeScore(best);return {alternative:label(best),gained:`Selected ${label(selected)} produced ${outcomeScore(selected)} customer points and achieved: ${objectivesForOutcome(selected).join(', ')||'None'}.`,sacrificed:`The strongest comparable valid alternative produced ${outcomeScore(best)} customer points and achieved: ${objectivesForOutcome(best).join(', ')||'None'}.`,net:diff>0?`The selected action outperformed the strongest valid alternative by ${diff} customer points.`:diff===0?'The selected action and strongest valid alternative produced the same customer score.':`The selected action underperformed the strongest valid alternative by ${Math.abs(diff)} customer points.`}}
 function renderOpportunityCost(){const rows=st.decisions.map(d=>({d,a:opportunityCost(d)})).filter(x=>x.a);if(!rows.length)return'<p>No comparable final-outcome alternatives were available for the recorded decisions.</p>';return rows.map(({d,a})=>{const shown=d.replacement?`${label(d.action)} → ${label(d.replacement)}`:label(d.action);return `<div class="analysis-card"><strong>Round ${d.round}: ${shown}</strong><p><b>Alternative Action:</b> ${a.alternative}</p><p><b>What Was Gained:</b> ${a.gained}</p><p><b>What Was Sacrificed:</b> ${a.sacrificed}</p><p><b>Net Assessment:</b> ${a.net}</p></div>`}).join('')}
