@@ -19,12 +19,12 @@ function priorityLabel(value,points){
 function ratingClass(r){return `rating-${String(r||'').toLowerCase().replace(/\s+/g,'-')}`}
 function home(){
   st={history:[],effects:[],decisions:[],supplierDecisions:[],submissionAttempted:false};
-  set(`<div class="screen-head"><div><p class="section-kicker">Choose a scenario</p><h2>Negotiation simulations</h2><p>Select a case and explore the consequences of your decisions. Your customer result can contribute up to 10 course points.</p></div></div><div id="scenario-grid" class="scenario-grid"></div>`);
+  set(`<div class="screen-head"><div><p class="section-kicker">Choose a scenario</p><h2>Negotiation simulations</h2><p>Select a case and negotiate through six rounds. Your customer result can contribute up to 10 course points.</p></div></div><div id="scenario-grid" class="scenario-grid"></div>`);
   const grid=document.getElementById('scenario-grid');
   Object.entries(S).forEach(([k,g],i)=>{
     const card=document.createElement('button');
     card.className='scenario-card';
-    card.innerHTML=`<span class="scenario-no">${String(i+1).padStart(2,'0')}</span><span class="scenario-type">${k==='Oracle_Audit'?5:6}-round simulation · up to 10 course points</span><strong>${g.game.name}</strong><span class="scenario-desc">${g.brief}</span><span class="scenario-cta">Start simulation <b>→</b></span>`;
+    card.innerHTML=`<span class="scenario-no">${String(i+1).padStart(2,'0')}</span><span class="scenario-type">6-round simulation · up to 10 course points</span><strong>${g.game.name}</strong><span class="scenario-desc">${g.brief}</span><span class="scenario-cta">Start simulation <b>→</b></span>`;
     card.onclick=()=>selectGame(k);grid.appendChild(card);
   });
 }

@@ -5,11 +5,4 @@
 @media(max-width:520px){body{padding:8px}.site-header{display:block}.restart-btn{margin-top:12px}.game-panel,.results-panel{padding:16px;border-radius:14px}.results-query-row{display:block}.results-query-row button{width:100%;margin-top:8px}}
 
 
-/* Oracle commercial decision case */
-.game-panel .option{display:block;width:100%;margin:12px 0;padding:17px;text-align:left;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--navy)}
-.game-panel .option:hover{background:#edf6f8;border-color:var(--teal)}
-.game-panel .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0}
-.game-panel .card{padding:20px;border:1px solid var(--line);border-radius:12px;background:#f8fafb}
-.game-panel .score{font-size:32px;font-weight:800}
-.table-scroll{overflow-x:auto;margin:18px 0}
-@media(max-width:760px){.game-panel .two{grid-template-columns:1fr}}
+.oracle-commercial{margin:18px 0}.oracle-commercial select{display:block;width:100%;max-width:100%;padding:12px;margin:10px 0 16px;background:#fff;color:var(--navy);font:inherit;border:1px solid var(--line);border-radius:8px}.round-progress{grid-template-columns:repeat(6,minmax(0,1fr))}
